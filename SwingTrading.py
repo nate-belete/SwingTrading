@@ -52,41 +52,41 @@ class SwingTrading:
         self.data.reset_index(inplace=True)
         return self.data
         
-    def forward_calc(self,  column, calc_type):
+    def add_rolling_columns(self, rows_forward):
+        """
+        Adds rolling min or max and lag columns to the DataFrame
 
-        # check if valid calc type
-        if calc_type not in ['min', 'max']:
-            raise ValueError('calc_type must be one of min or max')
+        Parameters
+        ----------
+        rows_forward : int
+            The number of rows to look forward
 
-        # get length of df
-        df_len = len(self.data)
-        
-        # set up list to store results
-        results = []
-        
-        # loop through each row
-        for i in range(df_len):
-            # get the index of the nth row
-            row_index = i + self.number_of_days
-            
-            # if nth row is not in df
-            if row_index >= df_len:
-                # store None in results
-                results.append(None)
-            else:
-                # get column values from nth row
-                col_vals = self.data.loc[i:row_index][column]
-                
-                # use appropriate calculation
-                if calc_type == 'min':
-                    res = np.min(col_vals)
-                else:
-                    res = np.max(col_vals)
-                # store result in results
-                results.append(res)
-                
-        var_ = column + "_" + calc_type
-        self.data[var_] = results
-        
-        # return list of results
+        Returns
+        -------
+        DataFrame
+            A pandas DataFrame containing the rolling min or max and lag columns
+        """
+        column_name_max = 'High'
+        rolling_max = list(self.data[column_name_max].rolling(rows_forward).max())[rows_forward:]
+        max_lag = list(self.data[column_name_max].rolling(rows_forward).apply(lambda x: list(x).index(max(x))+1))[rows_forward:]
+        empty_ = [0]*rows_forward
+        rolling_max = rolling_max + empty_
+        max_lag = max_lag + empty_
+        self.data['{}_{}'.format(column_name_max, rows_forward)] = rolling_max
+        max_lag_var = '{}_lag_{}'.format(column_name_max, rows_forward)
+        self.data[max_lag_var] = max_lag
+
+        column_name_min = 'Low'
+        rolling_min = list(self.data[column_name_min].rolling(rows_forward).min())[rows_forward:]
+        min_lag = list(self.data[column_name_min].rolling(rows_forward).apply(lambda x: list(x).index(min(x))+1))[rows_forward:]
+        empty_ = [0]*rows_forward
+        rolling_min = rolling_min + empty_
+        min_lag = min_lag + empty_
+        self.data['{}_{}'.format(column_name_min, rows_forward)] = rolling_min
+        min_lag_var = '{}_lag_{}'.format(column_name_min, rows_forward)
+        self.data[min_lag_var] = min_lag
+
+        self.data['High_Low_lag_5'] = np.where(self.data[max_lag_var] > self.data[min_lag_var], 'UpTrend', 
+                                            np.where(self.data[min_lag_var] > self.data[max_lag_var], 'DownTrend','NoTrend'))
+
         return self.data
