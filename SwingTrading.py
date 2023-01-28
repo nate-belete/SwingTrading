@@ -172,6 +172,33 @@ class SwingTrading:
         self.data['VWAP'] = (self.data['Close'] * self.data['Volume']).cumsum() / self.data['Volume'].fillna(0).cumsum()
 
         return self.data
+    
+    def add_Volume(self):
+        """
+        Adds the Volume column to the DataFrame
+
+        Returns
+        -------
+        DataFrame
+            A pandas DataFrame containing the Volume column
+        """
+        self.data['Volume'] = self.data['Close'].rolling(20).sum()
+
+        return self.data
+
+
+    def add_Accumulation_Distribution(self):
+        """
+        Adds the Accumulation/Distribution column to the DataFrame
+
+        Returns
+        -------
+        DataFrame
+            A pandas DataFrame containing the Accumulation/Distribution column
+        """
+        self.data['Accumulation/Distribution'] = (2 * self.data['Close'] - self.data['Low'] - self.data['High']) / (self.data['High'] - self.data['Low']) * self.data['Volume']
+
+        return self.data
         
     def add_volatility(self):
         """
@@ -348,7 +375,115 @@ class SwingTrading:
 
         return self.data
     
+    def add_Volume_Profile_Analysis(self):
+        """
+        Adds the Volume Profile Analysis column to the DataFrame
 
+        Returns
+        -------
+        DataFrame
+            A pandas DataFrame containing the Volume Profile Analysis column
+        """
+        self.data['Volume_Profile_Analysis'] = self.data['Volume'] / self.data['Close']
+
+        return self.data
+
+    def add_Candlestick_Pattern_Analysis(self):
+        """
+        Adds the Candlestick Pattern Analysis columns to the DataFrame
+
+        Returns
+        -------
+        DataFrame
+            A pandas DataFrame containing the Candlestick Pattern Analysis columns
+        """
+        self.data['Bullish_Engulfing'] = 0
+        self.data['Bearish_Engulfing'] = 0
+        self.data['Hammer'] = 0
+        self.data['Shooting_Star'] = 0
+        self.data['Doji'] = 0
+        self.data['Harami'] = 0
+        self.data['Hanging_Man'] = 0
+        self.data['Inverted_Hammer'] = 0
+        self.data['Tweezer_Bottom'] = 0
+        self.data['Tweezer_Top'] = 0
+        self.data['Bullish_Three_Line_Strike'] = 0
+        self.data['Bearish_Three_Line_Strike'] = 0
+        self.data['Bullish_Abandoned_Baby'] = 0
+        self.data['Bearish_Abandoned_Baby'] = 0
+        self.data['Bullish_Kicker'] = 0
+        self.data['Bearish_Kicker'] = 0
+        self.data['Bullish_Kick_Backs'] = 0
+        self.data['Bearish_Kick_Backs'] = 0
+        self.data['Bullish_Harami_Cross'] = 0
+        self.data['Bearish_Harami_Cross'] = 0
+        self.data['Bullish_Engulfing_Pattern'] = 0
+        self.data['Bearish_Engulfing_Pattern'] = 0
+
+        for i in range(1, len(self.data)):
+            if self.data['Open'][i] > self.data['Close'][i-1] and self.data['Close'][i] > self.data['Open'][i-1]:
+                self.data.loc[i,'Bullish_Engulfing'] = 1
+            elif self.data['Open'][i] < self.data['Close'][i-1] and self.data['Close'][i] < self.data['Open'][i-1]:
+                self.data.loc[i,'Bearish_Engulfing'] = 1
+            elif self.data['Low'][i] == self.data['Open'][i] and self.data['Low'][i] < self.data['Close'][i] and (self.data['Close'][i] - self.data['Low'][i]) > (self.data['High'][i] - self.data['Close'][i]):
+                self.data.loc[i,'Hammer'] = 1
+            elif self.data['High'][i] == self.data['Open'][i] and self.data['High'][i] > self.data['Close'][i] and (self.data['High'][i] - self.data['Open'][i]) > (self.data['Close'][i] - self.data['Low'][i]):
+                self.data.loc[i,'Shooting_Star'] = 1
+            elif self.data['Open'][i] == self.data['Close'][i]:
+                self.data.loc[i,'Doji'] = 1
+            elif self.data['Open'][i] > self.data['Close'][i-1] and self.data['Open'][i] > self.data['Close'][i] and self.data['Close'][i-1] > self.data['Open'][i]:
+                self.data.loc[i,'Harami'] = 1
+            elif self.data['High'][i] == self.data['Open'][i] and self.data['High'][i] > self.data['Close'][i] and (self.data['High'][i] - self.data['Open'][i]) < (self.data['Close'][i] - self.data['Low'][i]):
+                self.data.loc[i,'Hanging_Man'] = 1
+            elif self.data['Low'][i] == self.data['Open'][i] and self.data['Low'][i] < self.data['Close'][i] and (self.data['Close'][i] - self.data['Low'][i]) < (self.data['High'][i] - self.data['Close'][i]):
+                self.data.loc[i,'Inverted_Hammer'] = 1
+            elif self.data['Low'][i] > self.data['Low'][i-1] and self.data['High'][i] < self.data['High'][i-1] and self.data['Open'][i] > self.data['Close'][i-1]:
+                self.data.loc[i,'Tweezer_Bottom'] = 1
+            elif self.data['High'][i] > self.data['High'][i-1] and self.data['Low'][i] < self.data['Low'][i-1] and self.data['Open'][i] < self.data['Close'][i-1]:
+                self.data.loc[i,'Tweezer_Top'] = 1
+            elif self.data['Close'][i] > self.data['Open'][i] and self.data['Close'][i] > self.data['Close'][i-1] and self.data['Close'][i-1] > self.data['Close'][i-2] and self.data['Close'][i-2] > self.data['Close'][i-3]:
+                self.data.loc[i,'Bullish_Three_Line_Strike'] = 1
+            elif self.data['Close'][i] < self.data['Open'][i] and self.data['Close'][i] < self.data['Close'][i-1] and self.data['Close'][i-1] < self.data['Close'][i-2] and self.data['Close'][i-2] < self.data['Close'][i-3]:
+                self.data.loc[i,'Bearish_Three_Line_Strike'] = 1
+            elif self.data['Close'][i] > self.data['Open'][i] and self.data['Open'][i] < self.data['Close'][i-1] and self.data['Close'][i-2] > self.data['Open'][i-2] and self.data['Open'][i-2] > self.data['Close'][i-1] and self.data['Close'][i] > self.data['Close'][i-2]:
+                self.data.loc[i,'Bullish_Abandoned_Baby'] = 1
+            elif self.data['Close'][i] < self.data['Open'][i] and self.data['Open'][i] > self.data['Close'][i-1] and self.data['Close'][i-2] < self.data['Open'][i-2] and self.data['Open'][i-2] < self.data['Close'][i-1] and self.data['Close'][i] < self.data['Close'][i-2]:
+                self.data.loc[i,'Bearish_Abandoned_Baby'] = 1
+            elif self.data['Open'][i] < self.data['Close'][i-1] and self.data['Close'][i] > self.data['Open'][i] and self.data['Open'][i] < self.data['Close'][i-2] and self.data['Close'][i-2] < self.data['Open'][i-1]:
+                self.data.loc[i,'Bullish_Kicker'] = 1
+            elif self.data['Open'][i] > self.data['Close'][i-1] and self.data['Close'][i] < self.data['Open'][i] and self.data['Open'][i] > self.data['Close'][i-2] and self.data['Close'][i-2] > self.data['Open'][i-1]:
+                self.data.loc[i,'Bearish_Kicker'] = 1
+            elif self.data['Open'][i] < self.data['Close'][i-1] and self.data['Close'][i] > self.data['Open'][i] and self.data['Open'][i] > self.data['Close'][i-2] and self.data['Close'][i-2] > self.data['Open'][i-1]:
+                self.data.loc[i,'Bullish_Kick_Backs'] = 1
+            elif self.data['Open'][i] > self.data['Close'][i-1] and self.data['Close'][i] < self.data['Open'][i] and self.data['Open'][i] < self.data['Close'][i-2] and self.data['Close'][i-2] < self.data['Open'][i-1]:
+                self.data.loc[i,'Bearish_Kick_Backs'] = 1
+            elif self.data['Open'][i] > self.data['Close'][i-1] and self.data['Close'][i] > self.data['Open'][i] and self.data['Open'][i] < self.data['Close'][i-2] and self.data['Close'][i-2] < self.data['Open'][i-1]:
+                self.data.loc[i,'Bullish_Harami_Cross'] = 1
+            elif self.data['Open'][i] < self.data['Close'][i-1] and self.data['Close'][i] < self.data['Open'][i] and self.data['Open'][i] > self.data['Close'][i-2] and self.data['Close'][i-2] > self.data['Open'][i-1]:
+                self.data.loc[i,'Bearish_Harami_Cross'] = 1
+            elif self.data['Open'][i] < self.data['Close'][i-1] and self.data['Close'][i] > self.data['Close'][i-1]:
+                self.data.loc[i,'Bullish_Engulfing_Pattern'] = 1
+            elif self.data['Open'][i] > self.data['Close'][i-1] and self.data['Close'][i] < self.data['Close'][i-1]:
+                self.data.loc[i,'Bearish_Engulfing_Pattern'] = 1
+
+        return self.data
+
+    def add_Average_True_Range(self):
+        """
+        Adds the Average True Range column to the DataFrame
+
+        Returns
+        -------
+        DataFrame
+            A pandas DataFrame containing the Average True Range column
+        """
+        self.data['ATR'] = 0
+        self.data['ATR'][0] = self.data['High'][0] - self.data['Low'][0]
+
+        for i in range(1, len(self.data)):
+            self.data['ATR'][i] = (self.data['ATR'][i-1] * 13 + max(self.data['High'][i] - self.data['Low'][i],abs(self.data['High'][i] - self.data['Close'][i-1]),abs(self.data['Low'][i] - self.data['Close'][i-1]))) / 14
+
+        return
 
 
 # -Add Volume Profile Analysis
