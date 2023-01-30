@@ -93,6 +93,30 @@ class SwingTrading:
 
         return self.data
     
+    def scale_column(self, col_name, period):
+        """
+        Scales a given column of a pandas DataFrame between 0 and 1 using the 
+        columns prior 20 high and low values.
+
+        Parameters
+        ----------
+        data : DataFrame
+            The pandas DataFrame containing the column to be scaled
+        col_name : string
+            The name of the column to be scaled
+
+        Returns
+        -------
+        DataFrame
+            A pandas DataFrame with the scaled column
+        """
+        
+        high = self.data[col_name].rolling(period).max().shift(1)
+        low = self.data[col_name].rolling(period).min().shift(1)
+        self.data['scaled_' + str(period) + "_" + col_name] = (self.data[col_name] - low)/(high - low)
+        del self.data[col_name]
+        return self.data
+    
     def add_moving_averages(self):
         """
         Adds the moving average columns to the DataFrame
@@ -313,8 +337,8 @@ class SwingTrading:
         DataFrame
             A pandas DataFrame containing the label column
         """
-        self.data['Label'] = np.where(self.data['Close'] > self.data['Close'].shift(-1), 
-            'Positive', np.where(self.data['Close'] < self.data['Close'].shift(-1), 'Negative', 'Neutral'))
+        self.data['Label'] = np.where(self.data['Close'] > self.data['Close'].shift(1), 
+            'Positive', np.where(self.data['Close'] < self.data['Close'].shift(1), 'Negative', 'Neutral'))
 
         return self.data
     
@@ -551,8 +575,8 @@ class SwingTrading:
         DataFrame
             A pandas DataFrame containing the Parabolic SAR columns
         """
-        self.data['Parabolic_SAR_12'] = self.data['Close'].shift(-12)
-        self.data['Parabolic_SAR_26'] = self.data['Close'].shift(-26)
+        self.data['Parabolic_SAR_12'] = self.data['Close'].shift(12)
+        self.data['Parabolic_SAR_26'] = self.data['Close'].shift(26)
 
         return self.data
 
@@ -565,8 +589,8 @@ class SwingTrading:
         DataFrame
             A pandas DataFrame containing the Bollinger Band Width columns
         """
-        self.data['Bollinger_Band_Width_12'] = self.data['Upper_Bollinger_Band'] - self.data['Lower_Bollinger_Band']
-        self.data['Bollinger_Band_Width_26'] = self.data['Upper_Bollinger_Band'].shift(-12) - self.data['Lower_Bollinger_Band'].shift(-12)
+        self.data['Bollinger_Band_Width_12'] = self.data['Upper_Bollinger_Band'].shift(12) - self.data['Lower_Bollinger_Band'].shift(12)
+        self.data['Bollinger_Band_Width_26'] = self.data['Upper_Bollinger_Band'].shift(26) - self.data['Lower_Bollinger_Band'].shift(26)
 
         return self.data
 
@@ -584,7 +608,7 @@ class SwingTrading:
         self.data['Kijun_Sen'] = self.data['Low'].rolling(26).mean()
         self.data['Senkou_Span_A'] = (self.data['Tenkan_Sen'] + self.data['Kijun_Sen']) / 2
         self.data['Senkou_Span_B'] = self.data['Low'].rolling(52).mean()
-        self.data['Chikou_Span'] = self.data['Close'].shift(-26)
+        self.data['Chikou_Span'] = self.data['Close'].shift(26)
 
         return self.data
 
@@ -673,13 +697,13 @@ class SwingTrading:
         DataFrame
             A pandas DataFrame containing the Gann Fan columns
         """
-        self.data['Gann_Fan_1'] = self.data['Close'] + (self.data['Close'].shift(-1) - self.data['Close']) * 0.5
-        self.data['Gann_Fan_2'] = self.data['Close'] + (self.data['Close'].shift(-1) - self.data['Close']) * 0.382
-        self.data['Gann_Fan_3'] = self.data['Close'] + (self.data['Close'].shift(-1) - self.data['Close']) * 0.236
-        self.data['Gann_Fan_4'] = self.data['Close'] + (self.data['Close'].shift(-1) - self.data['Close']) * 0.618
-        self.data['Gann_Fan_5'] = self.data['Close'] + (self.data['Close'].shift(-1) - self.data['Close']) * 1
-        self.data['Gann_Fan_6'] = self.data['Close'] + (self.data['Close'].shift(-1) - self.data['Close']) * 1.382
-        self.data['Gann_Fan_7'] = self.data['Close'] + (self.data['Close'].shift(-1) - self.data['Close']) * 1.618
+        self.data['Gann_Fan_1'] = self.data['Close'] + (self.data['Close'].shift(1) - self.data['Close']) * 0.5
+        self.data['Gann_Fan_2'] = self.data['Close'] + (self.data['Close'].shift(1) - self.data['Close']) * 0.382
+        self.data['Gann_Fan_3'] = self.data['Close'] + (self.data['Close'].shift(1) - self.data['Close']) * 0.236
+        self.data['Gann_Fan_4'] = self.data['Close'] + (self.data['Close'].shift(1) - self.data['Close']) * 0.618
+        self.data['Gann_Fan_5'] = self.data['Close'] + (self.data['Close'].shift(1) - self.data['Close']) * 1
+        self.data['Gann_Fan_6'] = self.data['Close'] + (self.data['Close'].shift(1) - self.data['Close']) * 1.382
+        self.data['Gann_Fan_7'] = self.data['Close'] + (self.data['Close'].shift(1) - self.data['Close']) * 1.618
 
         return self.data
 
@@ -953,8 +977,8 @@ class SwingTrading:
         """
         coppock_curve = []
 
-        for i in range(len(self.data['Close'])-1):
-            diff = abs(self.data['Close'][i+1] - self.data['Close'][i])
+        for i in range(1,len(self.data['Close'])):
+            diff = abs(self.data['Close'][i] - self.data['Close'][i-1])
             coppock_curve.append(diff)
         
         self.data['Coppock_Curve'] = pd.Series(coppock_curve).rolling(11).mean()
@@ -1025,7 +1049,7 @@ class SwingTrading:
         """
         self.data['ATR'] = self.data['High'] - self.data['Low']
         self.data['ATR_EMA'] = self.data['ATR'].ewm(span=13).mean()
-        self.data['Chandelier_Exit'] = self.data['Close'].shift(-1) - (self.data['ATR_EMA'] * 3)
+        self.data['Chandelier_Exit'] = self.data['Close'].shift(1) - (self.data['ATR_EMA'] * 3)
 
         return self.data
 
@@ -1052,7 +1076,7 @@ class SwingTrading:
         DataFrame
             A pandas DataFrame containing the Parabolic SAR and ADX Combo columns
         """
-        self.data['Parabolic_SAR'] = self.data['Close'].shift(-1).rolling(2).mean()
+        self.data['Parabolic_SAR'] = self.data['Close'].shift(1).rolling(2).mean()
         self.data['ADX'] = self.data['Close'].rolling(3).mean()
 
         return self.data
@@ -1101,9 +1125,9 @@ class SwingTrading:
         DataFrame
             A pandas DataFrame containing the Andrews Pitchfork columns
         """
-        self.data['Andrews_Pitchfork_Line_1'] = self.data['Close'].shift(-2) + (2 * (self.data['High'] - self.data['Low']))
-        self.data['Andrews_Pitchfork_Line_2'] = self.data['Close'].shift(-2) - (2 * (self.data['High'] - self.data['Low']))
-        self.data['Andrews_Pitchfork_Line_3'] = self.data['Close'].shift(-2)
+        self.data['Andrews_Pitchfork_Line_1'] = self.data['Close'].shift(2) + (2 * (self.data['High'] - self.data['Low']))
+        self.data['Andrews_Pitchfork_Line_2'] = self.data['Close'].shift(2) - (2 * (self.data['High'] - self.data['Low']))
+        self.data['Andrews_Pitchfork_Line_3'] = self.data['Close'].shift(2)
         self.data['Andrews_Pitchfork_Line_1_MA'] = self.data['Andrews_Pitchfork_Line_1'].rolling(3).mean()
         self.data['Andrews_Pitchfork_Line_2_MA'] = self.data['Andrews_Pitchfork_Line_2'].rolling(3).mean()
         self.data['Andrews_Pitchfork_Line_3_MA'] = self.data['Andrews_Pitchfork_Line_3'].rolling(3).mean()
@@ -1123,7 +1147,7 @@ class SwingTrading:
         self.data['Kijun_Sen'] = self.data['Low'].rolling(26).mean()
         self.data['Senkou_Span_A'] = ((self.data['Tenkan_Sen'] + self.data['Kijun_Sen'])/2).shift(26)
         self.data['Senkou_Span_B'] = self.data['Low'].rolling(52).mean().shift(26)
-        self.data['Chikou_Span'] = self.data['Close'].shift(-26)
+        self.data['Chikou_Span'] = self.data['Close'].shift(26)
 
         return self.data
 
@@ -1395,7 +1419,7 @@ class SwingTrading:
         self.data['Ichimoku_Kinko_Hyo_Kijun_Sen'] = self.data['Low'].rolling(26).mean()
         self.data['Ichimoku_Kinko_Hyo_Senkou_Span_A'] = ((self.data['High'].rolling(9).mean() + self.data['Low'].rolling(26).mean()) / 2).shift(26)
         self.data['Ichimoku_Kinko_Hyo_Senkou_Span_B'] = ((self.data['High'].rolling(26).max() + self.data['Low'].rolling(26).min()) / 2).shift(26)
-        self.data['Ichimoku_Kinko_Hyo_Chikou_Span'] = self.data['Close'].shift(-26)
+        self.data['Ichimoku_Kinko_Hyo_Chikou_Span'] = self.data['Close'].shift(26)
 
         return self.data
 
@@ -1564,8 +1588,8 @@ class SwingTrading:
         DataFrame
             A pandas DataFrame containing the Elder-Ray Bull/Bear Power columns
         """
-        self.data['Bull_Power'] = self.data['High'] - self.data['Close'].shift(-1)
-        self.data['Bear_Power'] = self.data['Low'] - self.data['Close'].shift(-1)
+        self.data['Bull_Power'] = self.data['High'] - self.data['Close'].shift(1)
+        self.data['Bear_Power'] = self.data['Low'] - self.data['Close'].shift(1)
         self.data['Bull_Power_EMA'] = self.data['Bull_Power'].ewm(span=13, adjust=False).mean()
         self.data['Bear_Power_EMA'] = self.data['Bear_Power'].ewm(span=13, adjust=False).mean()
 
@@ -1580,7 +1604,7 @@ class SwingTrading:
         DataFrame
             A pandas DataFrame containing the Detrended Price Oscillator column
         """
-        self.data['Detrended_Price_Oscillator'] = self.data['Close'].shift(-1) - self.data['Close'].rolling(20).mean()
+        self.data['Detrended_Price_Oscillator'] = self.data['Close'].shift(1) - self.data['Close'].rolling(20).mean()
 
         return self.data
 
