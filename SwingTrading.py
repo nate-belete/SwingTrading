@@ -49,7 +49,7 @@ class SwingTrading:
         DataFrame
             A pandas DataFrame containing the stock data
         """
-        self.data = yf.download(self.ticker, start=self.start_date, end=self.end_date, period=self.period)
+        self.data = yf.download(self.ticker, start=self.start_date, end=self.end_date, interval =self.period)
         self.data.reset_index(inplace=True)
         return self.data
         
@@ -97,8 +97,7 @@ class SwingTrading:
         self.data['label'] = 0
         # if target is met, then success
         self.data.loc[self.data['high_close_change'] >= self.max_increase,'label'] = 1
-        del self.data['high_close_change']
-        del self.data['low_close_change']
+
         del self.data[min_lag_var]
         del self.data['{}_{}'.format(column_name_min, rows_forward)]
         del self.data[max_lag_var]
