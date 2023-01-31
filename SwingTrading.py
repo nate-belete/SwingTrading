@@ -87,10 +87,22 @@ class SwingTrading:
         min_lag_var = '{}_forward_{}'.format(column_name_min, rows_forward)
         self.data[min_lag_var] = min_lag
 
-        rows_forward_var = 'High_Low_forward_{}'.format(rows_forward)
-        self.data[rows_forward_var] = np.where(self.data[max_lag_var] > self.data[min_lag_var], 'UpTrend', 
-                                            np.where(self.data[min_lag_var] > self.data[max_lag_var], 'DownTrend','NoTrend'))
+        # rows_forward_var = 'High_Low_forward_{}'.format(rows_forward)
+        # self.data[rows_forward_var] = np.where(self.data[max_lag_var] > self.data[min_lag_var], 'UpTrend', 
+        #                                     np.where(self.data[min_lag_var] > self.data[max_lag_var], 'DownTrend','NoTrend'))
+        
+        self.data['high_close_change'] = self.data['{}_{}'.format(column_name_max, rows_forward)] / self.data['Close'] - 1
+        self.data['low_close_change'] = self.data['{}_{}'.format(column_name_min, rows_forward)] / self.data['Close'] - 1
 
+        self.data['label'] = 0
+        # if target is met, then success
+        self.data.loc[self.data['high_close_change'] >= self.max_increase,'label'] = 1
+        del self.data['high_close_change']
+        del self.data['low_close_change']
+        del self.data[min_lag_var]
+        del self.data['{}_{}'.format(column_name_min, rows_forward)]
+        del self.data[max_lag_var]
+        del self.data['{}_{}'.format(column_name_max, rows_forward)]
         return self.data
     
     def scale_column(self, col_name, period):
@@ -337,7 +349,7 @@ class SwingTrading:
         DataFrame
             A pandas DataFrame containing the label column
         """
-        self.data['Label'] = np.where(self.data['Close'] > self.data['Close'].shift(1), 
+        self.data['Current_ROI'] = np.where(self.data['Close'] > self.data['Close'].shift(1), 
             'Positive', np.where(self.data['Close'] < self.data['Close'].shift(1), 'Negative', 'Neutral'))
 
         return self.data
@@ -441,7 +453,7 @@ class SwingTrading:
         self.data['Bullish_Engulfing_Pattern'] = 0
         self.data['Bearish_Engulfing_Pattern'] = 0
 
-        for i in range(1, len(self.data)):
+        for i in range(4, len(self.data)):
             if self.data['Open'][i] > self.data['Close'][i-1] and self.data['Close'][i] > self.data['Open'][i-1]:
                 self.data.loc[i,'Bullish_Engulfing'] = 1
             elif self.data['Open'][i] < self.data['Close'][i-1] and self.data['Close'][i] < self.data['Open'][i-1]:
